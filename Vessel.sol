@@ -782,7 +782,7 @@ contract Vessel is Context, IERC20, Ownable {
     uint256 public _tFeeTotal;
 
     string private _name = "Vessel";
-    string private _symbol = "VSL6.8";
+    string private _symbol = "VSL7.4";
     uint8  private _decimals = 18;
     
     uint256 private _taxFee = 3;
@@ -889,6 +889,16 @@ contract Vessel is Context, IERC20, Ownable {
     }
 
     /**
+    * @dev return the votes of a specific coin for a specific address
+    * @param a the address for which we are to determine a vote allocation at index i
+    * @param i the index in the array of 20 coins we are to return the votes for
+    */
+    function getUserVotes(address a, uint i) public view returns(uint) {
+        require(a==msg.sender, "Only accessible information to user who voted.");
+        return userVotes[a][i];
+    }
+
+    /**
     * @dev function that sets the BalancedRatio array
     * @param ratios array
     */
@@ -958,6 +968,7 @@ contract Vessel is Context, IERC20, Ownable {
     
     mapping (address => uint256) public lastEpochVoteCast;
     uint public maxVotesAllowed;
+    mapping (address => uint[20]) private userVotes;
     
     event MinTokensBeforeSwapUpdated(uint256 minTokensBeforeSwap);
     event SwapAndLiquifyEnabledUpdated(bool enabled);
@@ -1153,11 +1164,11 @@ contract Vessel is Context, IERC20, Ownable {
    
     /** 
     * @dev function to set max transaction percentage.
-    * @param maxTxPercent max transaction percentage.
+    * @param maxTxPercent max transaction percentage to two decimal places.
     */
-    function setMaxTxPercent(uint256 maxTxPercent) external onlyOwner() {
+    function setMaxTxPercent(uint256 maxTxPercent) external onlyVessel {
         _maxTxAmount = _tTotal.mul(maxTxPercent).div(
-            10**2
+            10**4
         );
     }
 
@@ -1417,7 +1428,7 @@ contract Vessel is Context, IERC20, Ownable {
     /**
      * @dev adds liquidity to the contract by way of using the uniswapV2Router addLiquidity method.
      * @param tokenAmount amount of token to be paired with liquidity
-     * @param ethAmount amount of eth to be paired with token
+     * @param ethAmount amount of "eth" to be paired with token
      */
     function addLiquidity(uint256 tokenAmount, uint256 ethAmount) private {
         // approve token transfer to cover all possible scenarios
@@ -1433,7 +1444,6 @@ contract Vessel is Context, IERC20, Ownable {
             block.timestamp
         );
     }
-
 
     //TRANSFER FUNCTIONS TAKING INTO ACCOUNT REFLECTIONS:
 
@@ -1791,7 +1801,7 @@ contract Vessel is Context, IERC20, Ownable {
   /**
     * @dev aux-function that pre-processes the delta value for use in case 2.
     */
-    function preProcessCase2() private {
+    function preprocessCase2() private {
         uint diff_t_w = uint(delta_t - delta_w);
         delta = theta < diff_t_w ? theta : diff_t_w;
         //both u and delta are in 10**18 precision, divide
@@ -1928,6 +1938,7 @@ contract Vessel is Context, IERC20, Ownable {
         for(uint i = 0; i < 20; i++){
             uint currentAllocation = (ratiosAllocated[i] * (currentVotes)).div(10**18);
             coinVotes[i] = coinVotes[i] + (currentAllocation);
+            userVotes[msg.sender][i] = currentAllocation;
         }
     }
     
